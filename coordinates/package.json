@@ -1,0 +1,15 @@
+{
+  "name": "toGeoJSONPolygon",
+  "version": "0.0.1",
+  "description": "Create a GeoJSON polygon from AirBlock coordinates from NM in CSV format",
+  "author": "Enrico Spinielli <enrico.spinielli@eurocontrol.int>",
+  "bin": {
+  "module-name": "toGeoJSONPolygon"
+},
+  "dependencies": {
+    "csv2geojson": "*",
+    "rw": "*",
+    "mapshaper": "*"
+  },
+  "license": "MIT"
+}

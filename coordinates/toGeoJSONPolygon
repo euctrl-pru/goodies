@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+
+// var optimist = require('optimist'),
+//     fs = require('fs'),
+//     sys = require('sys'),
+//     concat = require('concat-stream'),
+//     csv2geojson = require('./'),
+//     argv = optimist
+//         .usage('Usage: $0 -lat [string] -lon [string] -delimeter [string] FILE')
+//         .describe('lat', 'the name of the latitude column')
+//         .describe('lon', 'the name of the longitude column')
+//         .describe('line', 'whether or not to output points as a LineString')
+//         .describe('delimiter', 'the type of delimiter')
+//         .default('delimiter', ',')
+//         .default('line', false)
+//         .argv;
+
+// if (process.stdin.isTTY && !argv._[0]) {
+//     return optimist.showHelp();
+// }
+// (argv._.length ? fs.createReadStream(argv._[0]) : process.stdin).pipe(concat(convert));
+
+
+var rw = require("rw");
+var csv2geojson = require('csv2geojson');
+
+// from '0054716W,494733N' to '005° 47" 16\' W,49° 47" 33\' N'
+function format(line) {
+  var p = line.split(","),
+      c,
+      sexg = "";
+  var dir, secs, mins, degs;
+
+  for (var i = 0; i < p.length; i++) {
+    c = p[i];
+    dir = c.slice(-1);
+    c = c.slice(0, -1);
+    secs = c.slice(-2)
+    c = c.slice(0, -2);
+    mins = c.slice(-2)
+    degs = c.slice(0, -2);
+    sexg += degs + "° " + mins + "' " + secs + "\" " + dir + ","; 
+  }
+  // remove last comma
+  return sexg.slice(0, -1);
+}
+
+var prog = process.argv[1];
+var ab = process.argv[2] || "/dev/stdin";
+var contents = rw.readFileSync(ab, "utf8");
+var lines = contents.split(/\r\n|[\n\v\f\r\x85\u2028\u2029]/);
+
+contents = [];
+// skip first line with the headings
+contents.push(lines[0]);
+
+// ... and format the rest
+for (var i = 1; i < lines.length; i++) {
+  contents.push(format(lines[i]));
+}
+// repeat first point to make the sequence a polygon
+contents.push(contents[1]);
+contents = contents.join('\n');
+
+
+// http://gmaclennan.github.io/parse-dms/
+// helped to understand how to get to the polygon!
+csv2geojson.csv2geojson(csv2geojson.auto(contents), function(err, data) {
+  data = csv2geojson.toPolygon(data);
+  data = JSON.stringify(data, null, 4);
+  data = data.replace('"properties": {}', '"properties": { "id": "' + ab + '" }');
+  rw.writeFileSync(ab + ".json", data, "utf8");
+});

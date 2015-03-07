@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+ 
+#- Version: 1.0
+#- Author: Enrico Spinielli
+#- Date: 2015/03/05
+#- Copyright (C) 2015 Eurocontrol/PRU
+
+
+## Usage: airblock_coordinates AIRAC AIRBLOCK
+## Return the list of AIRBLOCK's coordinates in AIRAC.
+## 
+## Arguments:
+##   AIRAC                   reference (CFMU) AIRAC number.
+##   AIRBLOCK                AIRBLOCK id.
+## 
+## Options:
+##   -h, --help              Print a usage message summarizing the command-line options, then exit.
+##   -V, --version           Output version information and exit.
+## 
+## Examples:
+## $ airblock_coordinates 396 999EB
+
+SCRIPT=$(basename ${BASH_SOURCE[0]})
+
+help=$(grep "^## " "${SCRIPT}" | cut -c 4-)
+version=$(grep "^#- "  "${SCRIPT}" | cut -c 4-)
+opt_h() {
+  echo "$help"
+}
+ 
+opt_v() {
+  echo "$version"
+}
+
+# Execute getopt
+TEMP=$(getopt -o :hV --long "help,version" -n "$SCRIPT" -- "$@");
+eval set -- "$TEMP"
+
+while true; do
+   case $1 in
+   -h|--help)
+      opt_h
+      exit
+      ;;
+   -V|--version)
+      opt_v
+      exit
+      ;;
+   --)
+      shift
+      break
+      ;;
+   \?)
+      echo "Invalid option: -$OPTARG" >&2
+      opt_h
+      exit 1
+      ;;
+   *)
+      echo "Internal error!"
+      exit 1
+      ;;
+   esac
+done
+
+# there are 2 mandatory arguments
+if (( $# != 2 )); then
+   echo "Error: illegal number of parameters"
+   opt_h
+   exit 1
+fi
+
+
+# process AIRAC and AB
+shift $((OPTIND-1))  #getopts move on to the next argument.
+AIRAC=$1
+AB=$2
+
+sqlplus -s /nolog <<-EOF
+   WHENEVER OSERROR EXIT 9;
+   WHENEVER SQLERROR EXIT SQL.SQLCODE;
+   CONNECT $DBUSR/$DBPWD@$DBNAME;
+   SET ERRORLOGGING ON;
+
+   SET FEEDBACK OFF
+   SET PAGESIZE 0
+   REM SET ECHO OFF
+   REM SET HEADING OFF
+   REM SET TERMOUT OFF
+   REM SET ECHO OFF
+   REM SET SHOWMODE OFF
+   SET COLSEP ,
+   REM SET TRIMSPOOL ON
+
+   PROMPT lon,lat
+   SELECT VTX_LON_FROM "lon", VTX_LAT_FROM "lat"
+     FROM ENV4.BOUNDARY_SEGMENT
+     WHERE  TWO_D_AREA_ID='${AB}' AND AC_ID=$AIRAC
+   ORDER BY SEQUENCE_NUMBER;
+EOF
