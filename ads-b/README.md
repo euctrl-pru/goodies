@@ -1,4 +1,4 @@
-Filter and convert ADS-B data from flightaware.com to CSV.
+Filter and convert ADS-B data from [FlightAware](http://www.flightaware.com) to CSV.
 
 The fields from position report from FlightAware are described below and fall into of 3 categories: [Mandatory](#mandatory), [Common](#common), [Optional](#optional).
 (From [FlightAware documentation page](http://flightaware.com/commercial/flightxml/documentation2.rvt))
