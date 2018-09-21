@@ -3,6 +3,24 @@ Filter and convert ADS-B data from [FlightAware](http://www.flightaware.com) to 
 The fields from position report from FlightAware are described below and fall into of 3 categories: [Mandatory](#mandatory), [Common](#common), [Optional](#optional).
 (From [FlightAware documentation page](http://flightaware.com/commercial/flightxml/documentation2.rvt))
 
+## One day of position report for one flight ##
+The values for `clock` are in unix epoch time
+
+```bash
+$ date -d @1424041200
+Mon Feb 16 00:00:00 CET 2015
+$ date -d @1424127600
+Tue Feb 17 00:00:00 CET 2015
+```
+The flight id is `ASL334`, then we get:
+
+```bash
+$ cat adsb.json | \
+  jq -r 'select(.ident=="ASL334" and .clock >= "1424041200" and .clock < "1424127600")|
+        [.lat,.lon,.clock,.updateType]|join(",")' | \
+  sort --key=3n -t, > ASL334_20150216.json
+```
+
 
 ## Example ##
 
@@ -98,4 +116,33 @@ $ head -n 20 adsb.small.json | \
 	jq -r '[
 		.fob,.oat,.airspeed_kts,.airspeed_mach,.winds,.eta,.baro_alt,.gps_alt,.atcident
 		]|join(",")'
+```
+
+*NOTE*: there seems to be entries with additional fields not mentioned in the tables above:
+
+```bash
+[espin@roy:ads-b]$ time cat adsb.json | jq -c 'keys| .[]' | sort | uniq
+"air_ground"
+"aircrafttype"
+"alt"
+"altChange"
+"atcident"
+"clock"
+"dest"
+"gs"
+"heading"
+"hexid"
+"id"
+"ident"
+"lat"
+"lon"
+"orig"
+"reg"
+"squawk"
+"type"
+"updateType"
+
+real	72m45.004s
+user	65m20.762s
+sys	3m51.984s
 ```
